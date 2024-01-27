@@ -1,5 +1,4 @@
 #include <Wire.h>
-#include <Arduino.h>
 #include "IP5356.h"
 
 /*
@@ -14,7 +13,7 @@
 */
 
 
-void IP5306::begin(uint8_t sdaPin, uint8_t sclPin) {
+void IP5356::begin(uint8_t sdaPin, uint8_t sclPin) {
     m_pTypecV = new short();
     m_pTypecI = new short();
 
@@ -22,7 +21,7 @@ void IP5306::begin(uint8_t sdaPin, uint8_t sclPin) {
     Wire.begin();
 }
 
-uint8_t IP5306::writeBytes(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t quantity) {
+uint8_t IP5356::writeBytes(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t quantity) {
     Wire.beginTransmission(addr);
     Wire.write(reg);
     Wire.write(data, quantity);
@@ -33,7 +32,7 @@ uint8_t IP5306::writeBytes(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t qua
     return res;
 
 }
-uint8_t IP5306::readBytes(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t quantity) {
+uint8_t IP5356::readBytes(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t quantity) {
     Wire.beginTransmission(addr);
     Wire.write(reg);
     uint8_t res = Wire.endTransmission(false);
@@ -60,7 +59,7 @@ uint8_t IP5306::readBytes(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t quan
 }
 
 
-short* IP5306::GetTypecV() {
+short* IP5356::GetTypecV() {
     uint8_t data;
     this->readBytes(IP5306_ADDR_0_1, R_VBUS_LOW, &data, 1);
     *m_pTypecV = data;
@@ -70,7 +69,7 @@ short* IP5306::GetTypecV() {
     return m_pTypecV;
 }
 
-short* IP5306::GetTypecI() {
+short* IP5356::GetTypecI() {
     uint8_t data;
     this->readBytes(IP5306_ADDR_0_1, R_IVIN_LOW, &data, 1);
     *m_pTypecI = data;
