@@ -16,6 +16,7 @@
 void IP5356::begin(uint8_t sdaPin, uint8_t sclPin) {
     m_pTypecV = new short();
     m_pTypecI = new short();
+    m_pSoc = new uint8_t();
 
     Wire.setPins(sdaPin, sclPin);
     Wire.begin();
@@ -77,4 +78,10 @@ short* IP5356::GetTypecI() {
     *m_pTypecI += data << 8;
 
     return m_pTypecI;
+}
+
+uint8_t* IP5356::GetSoc() {
+    this->readBytes(IP5306_ADDR_0_1, SOC_CAP_DATA_REGISTER, m_pSoc, 1);
+
+    return m_pSoc;
 }

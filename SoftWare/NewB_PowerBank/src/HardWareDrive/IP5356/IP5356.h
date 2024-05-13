@@ -12,6 +12,7 @@ class IP5356 {
     public:
         short* GetTypecV();
         short* GetTypecI();
+        uint8_t* GetSoc();
 
     private:
         uint8_t writeBytes(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t quantity);
@@ -20,6 +21,7 @@ class IP5356 {
     private:
         short* m_pTypecV;
         short* m_pTypecI;
+        uint8_t* m_pSoc;
 };
 
 #endif

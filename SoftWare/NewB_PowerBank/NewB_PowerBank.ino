@@ -10,8 +10,7 @@ IP5356 drp;
 void setup()
 {
   Serial.begin(115200);
-  while (!Serial);             // Leonardo: wait for serial monitor
-  Serial.println("I2C Scanner");
+  while (!Serial);
 
   drp.begin(4,5);
   
@@ -31,9 +30,12 @@ IP5356 drp;
     tft.fillScreen(TFT_BLUE);
     
     double fTypecV = (*drp.GetTypecV()) * 1.611328;
-    double fTypecI = (*drp.GetTypecI()) * 1.611328;
+    double fTypecI = (*drp.GetTypecI()) * 0.671387;
+    uint8_t iSoc = *drp.GetSoc();
     Serial.print("loop print power: ");
     Serial.println(fTypecV * fTypecI / 1000000);
+    Serial.print("soc: ");
+    Serial.println(iSoc);
     
     delay(700);
 } 

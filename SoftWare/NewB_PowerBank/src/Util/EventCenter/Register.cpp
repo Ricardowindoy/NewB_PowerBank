@@ -45,11 +45,9 @@ bool CRegister::UnRegisterByID(UINT64 u64MsgId, IEventReceive* pReceive)
                 break;
             }
         }
+        return true;
     }
-    else
-    {
-        return false;
-    }
+    return false;
 }
 
 bool CRegister::SendNotify(UINT64 u64MsgId, UINT64 u64Event)

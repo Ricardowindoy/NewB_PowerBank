@@ -26,4 +26,10 @@
 #define R_VBUS_LOW               0x62
 #define R_VBUS_HEIGH             0x63
 
+// SOC_CAP_DATA - 电芯电量数据寄存器
+#define SOC_CAP_DATA_REGISTER 0x7B
+
+// SOC_CAP_SET - 电芯电量设置寄存器
+#define SOC_CAP_SET_REGISTER 0x87
+
 #endif
