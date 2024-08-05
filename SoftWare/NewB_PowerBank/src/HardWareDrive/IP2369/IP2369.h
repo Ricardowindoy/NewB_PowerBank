@@ -1,5 +1,5 @@
+// todo:: iic方法应该抽象掉
 #include "IP2369Reg.h"
-#include <Arduino.h>
 #include "Wire.h"
 
 #ifndef IP2369_H

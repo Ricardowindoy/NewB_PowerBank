@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include "IP2369.h"
+#include "..\..\Util\Logger\Logger.h"
 
 
 void IP2369::begin(uint8_t sdaPin, uint8_t sclPin) {
@@ -17,7 +18,8 @@ uint8_t IP2369::writeBytes(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t qua
     Wire.write(data, quantity);
     uint8_t res = Wire.endTransmission();
     if (res != 0) {
-        log_e("IP5306 i2c write error: %d", res);
+        Logger::info("IP2369 i2c writte error: res=" + std::to_string(res));
+        return 0; 
     }
     return res;
 
@@ -27,7 +29,7 @@ uint8_t IP2369::readBytes(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t quan
     Wire.write(reg);
     uint8_t res = Wire.endTransmission(false);
     if (res != 0) {
-        Serial.printf("IP2369 i2c write error: %d\n", res);
+        Logger::info("IP2369 i2c read error: res=" + std::to_string(res));
         return 0; 
     }
     // read quantity bytes from I2C
@@ -51,9 +53,9 @@ uint8_t IP2369::readBytes(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t quan
 
 short* IP2369::GetTypecV() {
     uint8_t data;
-    this->readBytes(IP2369_ADDR_0_1, R_VBUS_LOW, &data, 1);
+    this->readBytes(IP2369_ADDR_0_1, R_VBAT_LOW, &data, 1);
     *m_pTypecV = data;
-    this->readBytes(IP2369_ADDR_0_1, R_VBUS_HEIGH, &data, 1);
+    this->readBytes(IP2369_ADDR_0_1, R_VBAT_HEIGH, &data, 1);
     *m_pTypecV += data << 8;
 
     return m_pTypecV;
@@ -61,9 +63,9 @@ short* IP2369::GetTypecV() {
 
 short* IP2369::GetTypecI() {
     uint8_t data;
-    this->readBytes(IP2369_ADDR_0_1, R_IVIN_LOW, &data, 1);
+    this->readBytes(IP2369_ADDR_0_1, R_IBAT_LOW, &data, 1);
     *m_pTypecI = data;
-    this->readBytes(IP2369_ADDR_0_1, R_IVIN_HEIGH, &data, 1);
+    this->readBytes(IP2369_ADDR_0_1, R_IBAT_HEIGH, &data, 1);
     *m_pTypecI += data << 8;
 
     return m_pTypecI;

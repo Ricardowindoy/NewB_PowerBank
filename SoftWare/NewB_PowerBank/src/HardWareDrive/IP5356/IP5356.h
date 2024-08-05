@@ -1,3 +1,4 @@
+// iic方法应抽象到平台接口层
 #include "IP5356Reg.h"
 #include <Arduino.h>
 #include "Wire.h"
