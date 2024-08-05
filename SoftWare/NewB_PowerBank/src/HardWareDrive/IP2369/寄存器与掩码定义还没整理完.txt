@@ -1,0 +1,663 @@
+
+// 第一组IIC地址 DS上时八位地址0xe8 0xe9 oxea 0xeb arduino用的是7位地址换算一下就是0x74 0x75
+#define IP5306_ADDR_0_0             0x74
+// 第二组IIC地址
+#define IP5306_ADDR_0_1             0x75
+
+/**
+ * *第一组IIC
+ * 
+ */
+
+// 7：4保留   3：2拔掉输入是否自动转boost输出 1x待机 01有负载boost无负载待机 00开启boost 1boost输出使能 0充电使能
+#define SYS_CTL0                0x00
+// 7:6保留    5：4轻载关机时间2的（3+x）次方s   3轻载VSYS功率使能   2轻载VSYS电流使能   1:0保留
+#define SYS_CTL1                0x03
+// 7:3保留    2：0 12V充电欠压值 000/10.7 001/10.9 010/11.3 011/11.4 -- 111/11.8
+#define CHG_CTL0                0x0B
+// 7:6 2:0 保留  5：3 9V充电欠压值 000/7.98 001/8.13 010/8.65 011/8.58  100/8.5 101/8.43 110/8.13 111/7.98
+#define CHG_CTL1                0x0C
+// 7:6保留 5：3同充同放电压   2：0 5V充电欠压  傻逼数据爷不抄了
+#define CHG_CTL2                0x0D
+
+// 第三组IIC地址的寄存器 R表示只读
+
+// 输入电流 单位0.671387ma
+#define R_IVIN_LOW              0x54
+#define R_IVIN_HEIGH            0x55
+// VBUS(c口)电压  单位1.611328mv
+#define R_VBUS_LOW               0x62
+#define R_VBUS_HEIGH             0x63
+
+// SYS_CTL2（轻载关机控制寄存器）
+#define SYS_CTL2_REGISTER 0x0F
+#define SYS_CTL2_WLED_ACT_BIT (1 << 4)       // 按键开关照明灯方式选择  0长按2s 1连续短按两次
+#define SYS_CTL2_LOWCUR_OFF_ACT_BIT (1 << 3) // 退出常开 N 小时按键方式选择 0 短按 1和进入常开一样
+#define SYS_CTL2_LOWCUR_ON_ACT_BIT (1 << 2)  // 进入常开 N 小时按键方式选择  0连续短按两次 1 长按2s
+#define SYS_CTL2_DSB_AHORT_BIT (1 << 1)      // 连续两次短按是否屏蔽短按使能    0不屏蔽短按 1 屏蔽短按
+
+// VOUT1_CTL0（VOUT1 控制寄存器） 都是1使能 0 disable
+#define VOUT1_CTL0_REGISTER 0x10
+#define VOUT1_CTL0_EN_VOUT1_DCP_BIT (1 << 3)  // VOUT1口普通5V DCP使能
+#define VOUT1_CTL0_EN_VOUT1_QC_BIT (1 << 2)   // VOUT1口快充使能
+#define VOUT1_CTL0_EN_VOUT1_DET_BIT (1 << 1)  // VOUT1负载检测使能（不控制DM DP检测）
+#define VOUT1_CTL0_EN_VOUT1_MOS_BIT (1 << 0)  // mos使能
+
+// VOUT1_CTL1（VOUT1 控制寄存器）的寄存器地址
+#define VOUT1_CTL1_REGISTER 0x13
+// VOUT1_CTL1 寄存器位域掩码
+#define VOUT1_CTL1_SET_VOUT1_ILOW_TIME_MASK  (0x0C)   //轻载关VOUT1时间 00 2s  01 4s   10 8s   11 16s
+#define VOUT1_CTL1_EN_VOUT1_VHG_ILOW_MASK    (1 << 1) //充电轻载关VOUT1使能 1使能
+#define VOUT1_CTL1_EN_VOUT1_CHG_ILOW_MASK    (1 << 0) //放电轻载关VOUT1使能 1使能
+
+// VOUT1_CTL2（VOUT1 控制寄存器）的寄存器地址
+#define VOUT1_CTL2_REGISTER 0x1C
+#define VOUT1_CTL2_EN_VOUT1_DM_DP_DET_MASK   (1 << 0) // Vout1 DM DP检测负载使能
+
+// VOUT2_CTL0（VOUT2 控制寄存器） 1使能
+#define VOUT2_CTL0_REGISTER 0x14
+#define VOUT2_CTL0_EN_VOUT2_DCP_BIT (1 << 3) // VOUT2口普通5V DCP使能
+#define VOUT2_CTL0_EN_VOUT2_QC_BIT (1 << 2) // VOUT2口快充使能
+#define VOUT2_CTL0_EN_VOUT2_DET_BIT (1 << 1) // VOUT2负载检测使能（不控制DM DP检测）
+#define VOUT2_CTL0_EN_VOUT2_MOS_BIT (1 << 0) // VOUT2 MOS输出通路使能
+
+// VOUT2_CTL1（VOUT2 控制寄存器） 1使能
+#define VOUT2_CTL1_REGISTER 0x17
+#define VOUT2_CTL1_SET_VOUT2_ILOW_TIME_MASK (0x0C) // VOUT2口轻载关输出口的时间设置掩码 00 2s   01 4s   10 8s   11 16s
+#define VOUT2_CTL1_EN_VOUT2_CHGILOW_BIT (1 << 1) // 充电状态轻载关VOUT2使能
+#define VOUT2_CTL1_EN_VOUT2_CHGILOW_BIT (1 << 0) // 放电状态轻载关VOUT2使能
+
+// VOUT2_CTL2（VOUT2 控制寄存器）1使能
+#define VOUT2_CTL2_REGISTER 0x1D
+#define VOUT2_CTL2_EN_VOUT2_DMDP_DET_BIT (1 << 0) // VOUT2口DM DP负载检测使能
+
+// VBUS_CTL0（VBUS 控制寄存器）1使能
+#define VBUS_CTL0_REGISTER 0x18
+#define VBUS_CTL0_EN_VBUS_DCP_BIT (1 << 3) // VBUS口普通5V DCP使能
+#define VBUS_CTL0_EN_VBUS_QC_BIT (1 << 2) // VBUS口快充使能
+#define VBUS_CTL0_EN_VBUS_MOS_BIT (1 << 0) // VBUS MOS输出通路使能
+
+// VBUS_CTL1（VBUS 控制寄存器）1使能
+#define VBUS_CTL1_REGISTER 0x1B
+#define VBUS_CTL1_SET_VBUS_ILOW_TIME_MASK (0x0C) // VBUS口轻载关输出口的时间设置掩码
+#define VBUS_CTL1_EN_VBUS_CHGILOW_BIT (1 << 1) // 放电状态轻载关VBUS使能
+#define VBUS_CTL1_EN_VBUS_CHGILOW_BIT (1 << 0) // 充电状态轻载关VBUS使能
+
+// VBUS_CTL2（VBUS 控制寄存器）1使能
+#define VBUS_CTL2_REGISTER 0x1D
+#define VBUS_CTL2_EN_VBUS_DMDP_DET_BIT (1 << 0) // VBUS口DM DP负载检测使能
+
+// PPATH_CTL0（同充同放控制寄存器）
+#define PPATH_CTL0_REGISTER 0x24
+#define PPATH_CTL0_EN_PPATH_VBUS_BIT (1 << 5) // VBUS输入5V同充同放使能5V
+
+// PPATH_CTL1（同充同放控制寄存器）
+#define PPATH_CTL1_REGISTER 0xF5
+#define PPATH_CTL1_EN_PPATH_VIN_BIT (1 << 6) // VIN输入5V同充同放使能5V
+
+// SYS_CTL3（输入快充和MOS控制寄存器）
+#define SYS_CTL3_REGISTER 0x25
+#define SYS_CTL3_EN_VBUS_SINKQC_BIT (1 << 3) // VBUS输入快充使能
+#define SYS_CTL3_EN_VIN_SINKQC_BIT (1 << 2) // VIN输入快充使能
+
+// CHG_CTL3（同充同放电流控制寄存器）
+#define CHG_CTL3_REGISTER 0x26
+#define CHG_CTL3_ISET_PPATH_BIT (0x7F)  // 同充同放电流设置 单位25ma
+
+// CHG_CTL4（VIN 12V充电电流控制寄存器）
+#define CHG_CTL4_REGISTER 0x27
+#define CHG_CTL3_ISET_VIN12V_BIT (0x7F)  // VIN 12v充电电流设置 单位25ma
+
+// CHG_CTL5（VIN 5V充电电流控制寄存器）
+#define CHG_CTL5_REGISTER 0x28
+#define CHG_CTL3_ISET_VIN5V_BIT (0x7F)  // VIN 5v充电电流设置 单位25ma
+
+// CHG_CTL6（VIN 5V充电电流控制寄存器）
+#define CHG_CTL6_REGISTER 0x29
+#define CHG_CTL6_EN_PPATH_CHG_BIT (1 << 7) // 同充同放时用同充同放电流作为输入电流使能
+// 这里也需要一个位域来表示电流设置
+
+// CHG_CTL7（VIN 9V充电电流控制寄存器）
+#define CHG_CTL7_REGISTER 0x2B
+#define CHG_CTL7_RET_5V_BIT (1 << 7) // 充满后输入快充是否申请退回5V
+// 这里也需要一个位域来表示电流设置
+
+// SYS_CTL4（按键关机）
+#define SYS_CTL4_REGISTER 0x31
+#define SYS_CTL4_EN_LONG_WK_BIT (1 << 2) // 长按2S按键唤醒使能
+// 这里需要一个位域来表示按键关机设置
+
+// SYS_CTL5（常开N小时和VSET检测使能）
+#define SYS_CTL5_REGISTER 0x33
+// 这里需要两个位域分别表示常开N小时时间设置和使能
+
+// BATLOW_ADC（电芯低电电压设置寄存器）
+#define BATLOW_ADC_REGISTER 0x41
+// 这里需要一个位域来表示低电关机ADC阈值设置
+// VOUT1_IMOSLOW（VOUT1 口轻载电流设置寄存器）
+#define VOUT1_IMOSLOW_REGISTER 0x49
+// 注意：这里需要一个位域来表示 IMOS_LOW 设置
+
+// VOUT2_IMOSLOW（VOUT2 口轻载电流设置寄存器）
+#define VOUT2_IMOSLOW_REGISTER 0x4A
+// 注意：这里需要一个位域来表示 IMOS_LOW 设置
+
+// VBUS_IMOSLOW（VBUS 口轻载电流设置寄存器）
+#define VBUS_IMOSLOW_REGISTER 0x4B
+// 注意：这里需要一个位域来表示 IMOS_LOW 设置
+
+// FCAP（电量计容量设置寄存器）
+#define FCAP_REGISTER 0x4C
+// 注意：这里需要一个位域来表示 FCAP 设置
+
+// MFP_CTL0（LED4/LED5 功能选择）
+#define MFP_CTL0_REGISTER 0x65
+#define MFP_CTL0_LED5_MASK (0x0C) // LED5 GPIO 功能选择掩码
+#define MFP_CTL0_LED4_MASK (0x03) // LED4 GPIO 功能选择掩码
+
+// MFP_CTL1（LED6 功能选择）
+#define MFP_CTL1_REGISTER 0x66
+#define MFP_CTL1_LED6_MASK (0x70) // LED6 GPIO 功能选择掩码
+
+// EN_FCAP（外部容量使能寄存器）
+#define EN_FCAP_REGISTER 0x78
+#define EN_FCAP_EN_FCAP_BIT (1 << 7) // FCAP 外部容量使能
+
+// NTC_CTL0（NTC 电流选择）
+#define NTC_CTL0_REGISTER 0xF6
+#define NTC_CTL0_NTC_20UA_SEL_MASK (0x30) // NTC PIN 电流控制选择掩码
+
+// NTC_CTL1（NTC 控制寄存器）
+#define NTC_CTL1_REGISTER 0xFD
+#define NTC_CTL1_EN_CHG_ML_BIT (1 << 7) // 充电 NTC 中低温充电电流减半使能
+#define NTC_CTL1_EN_CHG_MH_BIT (1 << 6) // 充电 NTC 中高温充电电流减半使能
+#define NTC_CTL1_EN_BOOST_LT_BIT (1 << 5) // 放电 NTC 低温关 boost 使能
+#define NTC_CTL1_EN_BOOST_HT_BIT (1 << 4) // 放电 NTC 高温关 boost 使能
+#define NTC_CTL1_EN_CHG_LT_BIT (1 << 3) // 充电 NTC 低温关 boost 使能
+#define NTC_CTL1_EN_CHG_HT_BIT (1 << 2) // 充电 NTC 高温关 boost 使能
+#define NTC_CTL1_EN_NTC_BIT (1 << 0) // NTC 使能
+
+// BST_VSET（输出电压设置寄存器）
+#define BST_VSET_REGISTER 0xAA
+// 注意：这里需要位域来表示 BOOST 输出电压控制方式选择和 TRSEL_REG 值
+
+// BST_5V（输出电压设置寄存器）
+#define BST_5V_REGISTER 0xAD
+// 注意：这里需要位域来表示 5V 档位输出电压设定
+
+// BST_12V_9V（输出电压设置寄存器）
+#define BST_12V_9V_REGISTER 0xAE
+// 注意：这里需要两个位域分别表示 12V 和 9V 档位输出电压设定
+
+// VOUT1_5V（5V 输出电流设置寄存器）
+#define VOUT1_5V_REGISTER 0xB1
+// 注意：这里需要位域来表示 5V 输出电流设置
+
+// VOUT1_9V（9V 输出电流设置寄存器）
+#define VOUT1_9V_REGISTER 0xB3
+// 注意：这里需要位域来表示 9V 输出电流设置
+
+// VOUT1_12V（12V 输出电流设置寄存器）
+#define VOUT1_12V_REGISTER 0xB4
+// 注意：这里需要位域来表示 12V 输出电流设置
+
+// VOUT2_5V（5V 输出电流设置寄存器）
+#define VOUT2_5V_REGISTER 0xB5
+// 注意：这里需要位域来表示 5V 输出电流设置
+
+// VOUT2_9V（9V 输出电流设置寄存器）
+#define VOUT2_9V_REGISTER 0xB7
+// 注意：这里需要位域来表示 9V 输出电流设置
+
+// VOUT2_12V（12V 输出电流设置寄存器）
+#define VOUT2_12V_REGISTER 0xB8
+// 注意：这里需要位域来表示 12V 输出电流设置
+
+// VBUS_5V（5V 输出电流设置寄存器）
+#define VBUS_5V_REGISTER 0xB9
+// 注意：这里需要位域来表示 5V 输出电流设置
+
+// VBUS_9V（9V 输出电流设置寄存器）
+#define VBUS_9V_REGISTER 0xBB
+// 注意：这里需要位域来表示 9V 输出电流设置
+
+// VBUS_12V（12V 输出电流设置寄存器）
+#define VBUS_12V_REGISTER 0xBC
+// 注意：这里需要位域来表示 12V 输出电流设置
+
+// TYPEC_CTL0（PD 控制寄存器）
+#define TYPEC_CTL0_REGISTER 0xD1
+// 注意：这里需要位域来表示 TYPEC CC 模式选择
+
+// TYPEC_CTL1（PD 控制寄存器）
+#define TYPEC_CTL1_REGISTER 0xD5
+// 注意：这里需要位域来表示 PD SINK 输入最大电压设置
+
+// NTC_20UA_CTL0（NTC PIN 输出电流控制）
+#define NTC_20UA_CTL0_REGISTER 0xF6
+// 注意：这里需要位域来表示 NTC PIN 电流控制
+
+// VIN_VBUS_OV（输入过压寄存器）
+#define VIN_VBUS_OV_REGISTER 0xEA01
+// 注意：这里需要位域来表示 VBUS 和 VIN 输入过压设置
+
+// BATLOW（模拟电芯低电关机电压）
+#define BATLOW_REGISTER 0xEA03
+// 注意：这里需要位域来表示 BATLOW 电压设置
+
+// GPIO_20UA_EN（GPIO 电流输出使能寄存器）
+#define GPIO_20UA_EN_REGISTER 0xEA19
+// 注意：这里需要位域来表示 GPIO 电流输出使能
+
+// SYS_CTL5（VOUT2 PD 快充寄存器）
+#define SYS_CTL5_VOUT2_PD_REGISTER 0xEA1
+// VIN_VBUS_OVP（输入过压保护设置寄存器）
+#define VIN_VBUS_OVP_REGISTER 0xEA01
+// 注意：这里需要位域来表示 VIN 和 VBUS 输入过压保护阈值设置
+
+// VIN_VBUS_UVP（输入欠压保护设置寄存器）
+#define VIN_VBUS_UVP_REGISTER 0xEA02
+// 注意：这里需要位域来表示 VIN 和 VBUS 输入欠压保护阈值设置
+
+// BATLOW_UVP（电池低电压保护设置寄存器）
+#define BATLOW_UVP_REGISTER 0xEA03
+// 注意：这里需要位域来表示电池低电压保护阈值设置
+
+// GPIO_CTL（GPIO 控制寄存器）
+#define GPIO_CTL_REGISTER 0xEA19
+// 注意：这里需要位域来表示 GPIO 控制功能
+
+// SYS_CTL5（系统控制寄存器）
+#define SYS_CTL5_REGISTER 0xEA1B
+// 注意：这里需要位域来表示系统控制功能
+
+// LED_CTL（LED 控制寄存器）
+#define LED_CTL_REGISTER 0xEA1C
+// 注意：这里需要位域来表示 LED 控制功能
+
+// ADC_CTL（ADC 控制寄存器）
+#define ADC_CTL_REGISTER 0xEA1D
+// 注意：这里需要位域来表示 ADC 控制功能
+
+// CHG_CTL（充电控制寄存器）
+#define CHG_CTL_REGISTER 0xEA1E
+// 注意：这里需要位域来表示充电控制功能
+
+// VOUT_CTL（VOUT 控制寄存器）
+#define VOUT_CTL_REGISTER 0xEA1F
+// 注意：这里需要位域来表示 VOUT 控制功能
+
+#define REGISTER_BIT3_TO_BIT5_MASK (0x38) // 0x38 是 00111000 的十六进制表示
+
+// OVER_TEMP_PROT（过温保护设置寄存器）
+#define OVER_TEMP_PROT_REGISTER 0xEA20
+// 注意：这里需要位域来表示过温保护阈值设置
+
+// SHORT_CIRC_PROT（短路保护设置寄存器）
+#define SHORT_CIRC_PROT_REGISTER 0xEA21
+// 注意：这里需要位域来表示短路保护阈值设置
+
+// VOUT_OVP（输出过压保护设置寄存器）
+#define VOUT_OVP_REGISTER 0xEA22
+// 注意：这里需要位域来表示 VOUT 输出过压保护阈值设置
+
+// VOUT_UVP（输出欠压保护设置寄存器）
+#define VOUT_UVP_REGISTER 0xEA23
+// 注意：这里需要位域来表示 VOUT 输出欠压保护阈值设置
+
+// CURRENT_LIMIT（电流限制设置寄存器）
+#define CURRENT_LIMIT_REGISTER 0xEA24
+// 注意：这里需要位域来表示电流限制设置
+
+// VIN_DROP_PROT（输入电压降保护设置寄存器）
+#define VIN_DROP_PROT_REGISTER 0xEA25
+// 注意：这里需要位域来表示 VIN 电压降保护阈值设置
+
+// BOOST_MODE_CTL（升压模式控制寄存器）
+#define BOOST_MODE_CTL_REGISTER 0xEA26
+// 注意：这里需要位域来表示升压模式控制功能
+
+// CHARGE_MODE_CTL（充电模式控制寄存器）
+#define CHARGE_MODE_CTL_REGISTER 0xEA27
+// 注意：这里需要位域来表示充电模式控制功能
+
+// DISCHARGE_MODE_CTL（放电模式控制寄存器）
+#define DISCHARGE_MODE_CTL_REGISTER 0xEA28
+// 注意：这里需要位域来表示放电模式控制功能
+
+// WATCHDOG_TIMER（看门狗定时器设置寄存器）
+#define WATCHDOG_TIMER_REGISTER 0xEA29
+// 注意：这里需要位域来表示看门狗定时器设置
+
+、、在这些宏定义中，您需要根据您的硬件手册或数据表中提供的具体信息来确定每个位域的掩码和位位置。例如，如果一个寄存器的第2位表示某个特定的控制功能，您可以定义：
+#define REGISTER_SPECIFIC_CONTROL_BIT (1 << 1) // 第2位（从0开始计数）
+对于位域，如果需要设置或屏蔽特定几位，例如第3位到第5位，您可以定义：
+#define REGISTER_BIT3_TO_BIT5_MASK (0x38) // 0x38 是 00111000 的二进制表示的十六进制形式
+
+// CHG_CTL10 - 充电恒压充电电压设置寄存器
+#define CHG_CTL10_REGISTER 0xEA3A
+#define CHG_CTL10_VSET_BAT_MASK (0x0C) // VSET_BAT位域掩码, 占位3:2
+#define CHG_CTL10_R_CV_MASK (0x03) // R_CV位域掩码, 占位1:0
+
+// 设置VSET_BAT和R_CV的宏
+#define CHG_CTL10_SET_VSET_BAT(value) (((value) & 0x03) << 2) // 将value值左移2位，并只保留低两位
+#define CHG_CTL10_SET_R_CV(value) ((value) & 0x03) // 只保留value的低两位
+
+// CHG_CTL11 - 充电停充电流设置寄存器
+#define CHG_CTL11_REGISTER 0xEA3B
+#define CHG_CTL11_CHG_ISTOP1_MASK (0xC0) // CHG_ISTOP1位域掩码, 占位7:6
+
+// 设置CHG_ISTOP1的宏
+#define CHG_CTL11_SET_CHG_ISTOP1(value) (((value) & 0x03) << 6) // 将value值左移6位，并只保留低两位
+
+// CHG_CTL12 - 充电停充电流设置寄存器
+#define CHG_CTL12_REGISTER 0xEA42
+#define CHG_CTL12_CHG_ISTOP2_MASK (0x0C) // CHG_ISTOP2位域掩码, 占位3:2
+
+// 设置CHG_ISTOP2的宏
+#define CHG_CTL12_SET_CHG_ISTOP2(value) (((value) & 0x03) << 2) // 将value值左移2位，并只保留低两位
+//请注意，上述宏定义中的value参数应该是您要设置的值，比如0x00、0x01、0x02或0x03，取决于您要设置的具体位域值。使用这些宏可以帮助您在编写代码时减少错误，并使您的代码更加清晰易读。
+
+//例如，如果您想设置CHG_CTL10寄存器的VSET_BAT为4.35V（对应位值10），并且将R_CV设置为加 14mV（对应位值01），您可以这样写：
+uint8_t reg_value = (CHG_CTL10_SET_VSET_BAT(0x02) | CHG_CTL10_SET_R_CV(0x01));
+// 现在reg_value可以被写入到CHG_CTL10_REGISTER寄存器中
+
+// CHG_CTL10 - 充电恒压充电电压设置寄存器
+#define CHG_CTL10_REGISTER 0x3A
+#define CHG_CTL10_VSET_BAT_4_2V (0x00 << 2)
+#define CHG_CTL10_VSET_BAT_4_3V (0x01 << 2)
+#define CHG_CTL10_VSET_BAT_4_35V (0x02 << 2)
+#define CHG_CTL10_VSET_BAT_4_4V (0x03 << 2)
+#define CHG_CTL10_R_CV_0MV (0x00)
+#define CHG_CTL10_R_CV_14MV (0x01)
+#define CHG_CTL10_R_CV_28MV (0x02)
+#define CHG_CTL10_R_CV_42MV (0x03)
+
+// CHG_CTL11 - 充电停充电流设置寄存器
+#define CHG_CTL11_REGISTER 0x3B
+#define CHG_CTL11_CHG_ISTOP1_200MA (0x00 << 6)
+#define CHG_CTL11_CHG_ISTOP1_300MA (0x01 << 6)
+#define CHG_CTL11_CHG_ISTOP1_400MA (0x02 << 6)
+#define CHG_CTL11_CHG_ISTOP1_500MA (0x03 << 6)
+
+// CHG_CTL12 - 充电停充电流设置寄存器
+#define CHG_CTL12_REGISTER 0x42
+#define CHG_CTL12_CHG_ISTOP2_100MA (0x00 << 2)
+#define CHG_CTL12_CHG_ISTOP2_200MA (0x01 << 2)
+#define CHG_CTL12_CHG_ISTOP2_300MA (0x02 << 2)
+#define CHG_CTL12_CHG_ISTOP2_400MA (0x03 << 2)
+
+//这些宏定义中，对于每一个具体的设置值（例如4.2V, 4.3V等），我们都定义了一个宏。这样的设计可以让代码在设置寄存器值时更加清晰和易于理解。例如，如果您想设置CHG_CTL10寄存器为4.35V和增加14mV，您可以使用以下代码：
+
+uint8_t chg_ctl10_value = CHG_CTL10_VSET_BAT_4_35V | CHG_CTL10_R_CV_14MV;
+// 现在可以将chg_ctl10_value写入到CHG_CTL10_REGISTER地址
+
+// CHG_CTL10 - 充电恒压充电电压设置寄存器
+#define CHG_CTL10_REGISTER 0x3A
+#define CHG_CTL10_VSET_BAT_4_2V (0x00 << 2)
+#define CHG_CTL10_VSET_BAT_4_3V (0x01 << 2)
+#define CHG_CTL10_VSET_BAT_4_35V (0x02 << 2)
+#define CHG_CTL10_VSET_BAT_4_4V (0x03 << 2)
+#define CHG_CTL10_R_CV_0MV (0x00)
+#define CHG_CTL10_R_CV_14MV (0x01)
+#define CHG_CTL10_R_CV_28MV (0x02)
+#define CHG_CTL10_R_CV_42MV (0x03)
+
+// CHG_CTL11 - 充电停充电流设置寄存器
+#define CHG_CTL11_REGISTER 0x3B
+#define CHG_CTL11_CHG_ISTOP1_200MA (0x00 << 6)
+#define CHG_CTL11_CHG_ISTOP1_300MA (0x01 << 6)
+#define CHG_CTL11_CHG_ISTOP1_400MA (0x02 << 6)
+#define CHG_CTL11_CHG_ISTOP1_500MA (0x03 << 6)
+
+// CHG_CTL12 - 充电停充电流设置寄存器
+#define CHG_CTL12_REGISTER 0x42
+#define CHG_CTL12_CHG_ISTOP2_100MA (0x00 << 2)
+#define CHG_CTL12_CHG_ISTOP2_200MA (0x01 << 2)
+#define CHG_CTL12_CHG_ISTOP2_300MA (0x02 << 2)
+#define CHG_CTL12_CHG_ISTOP2_400MA (0x03 << 2)
+
+// 这些宏定义中，对于每一个具体的设置值（例如4.2V, 4.3V等），我们都定义了一个宏。这样的设计可以让代码在设置寄存器值时更加清晰和易于理解。例如，如果您想设置CHG_CTL10寄存器为4.35V和增加14mV，您可以使用以下代码：
+uint8_t chg_ctl10_value = CHG_CTL10_VSET_BAT_4_35V | CHG_CTL10_R_CV_14MV;
+// 现在可以将chg_ctl10_value写入到CHG_CTL10_REGISTER地址
+
+// BATVADC_DAT0 - VBAT 电压寄存器低 8bit
+#define BATVADC_DAT0_REGISTER 0x50
+
+// BATVADC_DAT1 - VBAT 电压寄存器高 8bit
+#define BATVADC_DAT1_REGISTER 0x51
+#define BATVADC_DAT1_MULTIPLIER 0.26855 // VBAT = BATVADC * 0.26855mV
+
+// VSYSVADC_DAT0 - VSYS 电压寄存器低 8bit
+#define VSYSVADC_DAT0_REGISTER 0x52
+
+// VSYSVADC_DAT1 - VSYS 电压寄存器高 8bit
+#define VSYSVADC_DAT1_REGISTER 0x53
+#define VSYSVADC_DAT1_MULTIPLIER 1.611328 // VSYS = VSYSVADC * 1.611328mV
+
+// IVIN/IVBUS_IADC_DAT0 - 输入电流寄存器低 8bit
+#define IVIN_IVBUS_IADC_DAT0_REGISTER 0x54
+
+// IVIN/IVBUS_IADC_DAT1 - 输入电流寄存器高 8bit
+#define IVIN_IVBUS_IADC_DAT1_REGISTER 0x55
+#define IVIN_IVBUS_IADC_MULTIPLIER 0.671387 // Iin = IVIN/IVBUSADC * 0.671387mA
+
+// IVOUT1_IADC_DAT0 - VOUT1 输出电流寄存器低 8bit
+#define IVOUT1_IADC_DAT0_REGISTER 0x56
+
+// IVOUT1_IADC_DAT1 - VOUT1 输出电流寄存器高 8bit
+#define IVOUT1_IADC_DAT1_REGISTER 0x57
+#define IVOUT1_IADC_MULTIPLIER 0.671387 // IOUT1 = IVOUT1ADC * 0.671387mA
+
+// IVOUT2_IADC_DAT0 - VOUT2 输出电流寄存器低 8bit
+#define IVOUT2_IADC_DAT0_REGISTER 0x58
+
+// IVOUT2_IADC_DAT1 - VOUT2 输出电流寄存器高 8bit
+#define IVOUT2_IADC_DAT1_REGISTER 0x59
+#define IVOUT2_IADC_MULTIPLIER 0.671387 // IOUT2 = IVOUT2ADC * 0.671387mA
+
+// IBATIADC_DAT0 - BAT 端电流寄存器低 8bit
+#define IBATIADC_DAT0_REGISTER 0x6E
+
+// IBATIADC_DAT1 - BAT 端电流寄存器高 8bit
+#define IBATIADC_DAT1_REGISTER 0x6F
+#define IBATIADC_MULTIPLIER 1.6785 // IBAT = IBATIADC * 1.6785mA
+
+// ISYS_IADC_DAT0 - IVSYS 端电流寄存器低 8bit
+#define ISYS_IADC_DAT0_REGISTER 0x70
+
+// ISYS_IADC_DAT1 - IVSYS 端电流寄存器高 8bit
+#define ISYS_IADC_DAT1_REGISTER 0x71
+#define ISYS_IADC_MULTIPLIER 0.671387 // IVSYS = ISYSIADC * 0.671387mA
+
+// VSYS_POW_DAT0 - VSYS 端功率寄存器低 8bit
+#define VSYS_POW_DAT0_REGISTER 0x74
+
+// VSYS_POW_DAT1 - VSYS 端功率寄存器高 8bit
+#define VSYS_POW_DAT1_REGISTER 0x75
+#define VSYS_POW_MULTIPLIER 4.431 // VSYS_POW = VSYS_POW_ADC * 4.431mW
+
+// SOC_CAP_DATA - 电芯电量数据寄存器
+#define SOC_CAP_DATA_REGISTER 0x7B
+
+// SOC_CAP_SET - 电芯电量设置寄存器
+#define SOC_CAP_SET_REGISTER 0x87
+
+// FORCE_STANDBY - 软件关机寄存器
+#define FORCE_STANDBY_REGISTER 0x86
+#define FORCE_STANDBY_BIT (1 << 7) // 写1可以使IP5356进入休眠状态
+
+// STATE_CTL0 - 充电状态控制寄存器
+#define STATE_CTL0_REGISTER 0x90
+#define
+
+
+// STATE_CTL1 - 输入 PD 状态控制寄存器
+#define STATE_CTL1_REGISTER 0x91
+#define STATE_CTL1_PD_SINK_STATE_AUTO (0x00 << 2)
+#define STATE_CTL1_PD_SINK_STATE_OFF (0x01 << 2)
+#define STATE_CTL1_PD_SINK_STATE_ON (0x03 << 2)
+
+// STATE_CTL2 - 充电路径控制寄存器
+#define STATE_CTL2_REGISTER 0x92
+#define STATE_CTL2_CHG_MOS_STATE_AUTO (0x00)
+#define STATE_CTL2_CHG_MOS_STATE_VIN (0x01)
+#define STATE_CTL2_CHG_MOS_STATE_VBUS (0x03)
+
+// STATE_CTL3 - PD 输出控制寄存器
+#define STATE_CTL3_REGISTER 0x97
+#define STATE_CTL3_PD_SRC_STATE_AUTO (0x00 << 6)
+#define STATE_CTL3_PD_SRC_STATE_OFF (0x01 << 6)
+#define STATE_CTL3_PD_SRC_STATE_ON (0x03 << 6)
+
+// PD_STATE0 - 系统状态指示寄存器（PD SINK输入连接标志位）
+#define PD_STATE0_REGISTER 0xB1
+#define PD_STATE0_SINK_PD_OK (1 << 7)
+
+// PD_STATE1 - 系统状态指示寄存器（PD SRC输出连接标志位）
+#define PD_STATE1_REGISTER 0xC2
+#define PD_STATE1_SRC_PD_OK (1 << 7)
+
+// PD_STATE2 - 系统状态指示寄存器（PPS SRC输出连接标志位）
+#define PD_STATE2_REGISTER 0xC3
+#define PD_STATE2_SRC_PPS_OK (1 << 0)
+
+// SYS_STATE0 - 系统状态指示寄存器
+#define SYS_STATE0_REGISTER 0xC4
+#define SYS_STATE0_VINOK (1 << 7)
+#define SYS_STATE0_VBUSOV (1 << 5)
+#define SYS_STATE0_VBUSOK (1 << 4)
+
+// SYS_STATE1 - 系统状态指示寄存器
+#define SYS_STATE1_REGISTER 0xC5
+#define SYS_STATE1_VBATLOW (1 << 2)
+#define SYS_STATE1_VSYS_OV (1 << 1)
+#define SYS_STATE1_VIN_OV (1 << 0)
+
+// SYS_STATE2 - 系统状态指示寄存器
+#define SYS_STATE2_REGISTER 0xCD
+#define SYS_STATE2_SRC_QC_OK (1 << 6)
+
+// SYS_STATE3 - 系统状态指示寄存器
+#define SYS_STATE3_REGISTER 0xD0
+#define SYS_STATE3_VINOK_CHARGING_VIN (0 << 7)
+#define SYS_STATE3_VINOK_CHARGING_VBUS (1 << 7)
+#define SYS_STATE3_VBUSOV_SAME (1 << 6)
+#define SYS_STATE3_CHARGE_EN (1 << 5)
+#define SYS_STATE3_BOOST_EN (1 << 4)
+#define SYS_STATE3_SYS_STATE_MASK (0x07) // Mask for bits 0-2
+
+// SYS_STATE4 - 系统状态指示寄存器
+#define SYS_STATE4_REGISTER 0xD4
+#define SYS_STATE4_CHG_QC_STATE_MASK (0x07) // Mask for bits 0-2
+
+// LOWCUR_STATE - 系统状态指示寄存器
+#define LOWCUR_STATE_REGISTER 0xE1
+#define LOWCUR_STATE_LOWCUR_STATE (1 << 7)
+
+// CHG_STATE1 - 系统状态指示寄存器
+#define CHG_STATE1_REGISTER 0xE8
+#define CHG_STATE1_VBUS_MOSI_STATE (1 << 7)
+#define CHG_STATE1_VIN_MOS_STATE (1 << 6)
+#define CHG_STATE1_VCHG_STATE_MASK (0x30) // Mask for bits 4-5
+
+// CHG_STATE2 - 系统状态指示寄存器
+#define CHG_STATE2_REGISTER 0xE9
+#define CHG_STATE2_SINK_QC_OK (1 << 7)
+#define CHG_STATE2_CHG_STATE_MASK (0x70) // Mask for bits 4-6
+#define CHG_STATE2_CHARGE_EN_STATE (1 << 3)
+
+// MOS_STATE - 输出 MOS 状态指示寄存器
+#define MOS_STATE_REGISTER 0xEB
+#define MOS_STATE_AT_SAME (1 << 7)
+#define MOS_STATE_MOS_VBUS_STATE (1 << 6)
+#define MOS_STATE_MOS_VOUT2_STATE (1 << 5)
+#define MOS_STATE_MOS_VOUT1_STATE (1
+
+
+// ILOW_STATE - 系统轻载状态指示寄存器
+#define ILOW_STATE_REGISTER 0xF2
+#define ILOW_STATE_ISYS_LOW (1 << 6)
+#define ILOW_STATE_POW_LOW (1 << 4)
+
+// TYPEC_STATE - Type-C 状态指示寄存器
+#define TYPEC_STATE_REGISTER 0xF3
+#define TYPEC_STATE_CC_SRC_OK (1 << 7)
+#define TYPEC_STATE_CC_SINK_OK (1 << 6)
+
+// KEYIN_STATE - 按键状态指示寄存器
+#define KEYIN_STATE_REGISTER 0xF4
+#define KEYIN_STATE_ON_OFF_2SHORT (1 << 7)
+#define KEYIN_STATE_ON_OFF_LONG (1 << 6)
+#define KEYIN_STATE_ON_OFF_SHORT (1 << 5)
+
+// NTC_STATE - NTC 和输出 MOS 电流状态指示寄存器
+#define NTC_STATE_REGISTER 0xFB
+#define NTC_STATE_NTC_HT (1 << 7)
+#define NTC_STATE_NTC_MHT (1 << 6)
+#define NTC_STATE_NTC_MLT (1 << 5)
+#define NTC_STATE_NTC_LT (1 << 4)
+#define NTC_STATE_MOS_VBUS_ILOW (1 << 3)
+#define NTC_STATE_MOS_VOUT2_ILOW (1 << 2)
+#define NTC_STATE_MOS_VOUT1_ILOW (1 << 1)
+
+// OCP_STATE - 系统过流状态指示寄存器
+#define OCP_STATE_REGISTER 0xFC
+#define OCP_STATE_BOOST_UV (1 << 2)
+#define OCP_STATE_BOOST_SCDT (1 << 0)
+
+//请注意，这些宏定义提供了寄存器地址、位掩码和一些位移操作，这些是基于您提供的文档片段。在实际使用时，您可能需要实现读取和写入寄存器的函数，这些宏定义可以使您的寄存器访问代码更清晰。
+
+// 例如，如果您需要检查PD SINK连接是否有效，您可以使用以下代码读取相应的寄存器并检查PD_STATE0_SINK_PD_OK位是否被设置：
+uint8_t pd_state0 = read_register(PD_STATE0_REGISTER);
+if (pd_state0 & PD_STATE0_SINK_PD_OK) {
+    // PD SINK 输入连接有效
+}
+// FLED_STATE - 前置LED状态指示寄存器
+#define FLED_STATE_REGISTER 0xFD
+#define FLED_STATE_FLED2_FAULT (1 << 7)
+#define FLED_STATE_FLED1_FAULT (1 << 6)
+#define FLED_STATE_FLED2_ON (1 << 5)
+#define FLED_STATE_FLED1_ON (1 << 4)
+
+// LED_STATE - LED状态指示寄存器
+#define LED_STATE_REGISTER 0xFE
+#define LED_STATE_LED4_ON (1 << 7)
+#define LED_STATE_LED3_ON (1 << 6)
+#define LED_STATE_LED2_ON (1 << 5)
+#define LED_STATE_LED1_ON (1 << 4)
+
+// LED_CFG - LED配置寄存器
+#define LED_CFG_REGISTER 0x8A
+#define LED_CFG_LED_FUNC_SET (1 << 7)
+#define LED_CFG_LED3_FLASH_SET (1 << 6)
+#define LED_CFG_LED2_FLASH_SET (1 << 5)
+#define LED_CFG_LED1_FLASH_SET (1 << 4)
+#define LED_CFG_LED0_FLASH_SET (1 << 3)
+#define LED_CFG_LED_MASK (0x07) // Mask for bits 0-2
+
+// LED_EN - LED使能寄存器
+#define LED_EN_REGISTER 0x8B
+#define LED_EN_LED4_ENABLE (1 << 7)
+#define LED_EN_LED3_ENABLE (1 << 6)
+#define LED_EN_LED2_ENABLE (1 << 5)
+#define LED_EN_LED1_ENABLE (1 << 4)
+#define LED_EN_LED_FUNC_ENABLE (1 << 3)
+
+// FLED_CFG - 前置LED配置寄存器
+#define FLED_CFG_REGISTER 0x8C
+#define FLED_CFG_FLED2_TORCH (1 << 7)
+#define FLED_CFG_FLED1_TORCH (1 << 6)
+#define FLED_CFG_FLED2_FLASH (1 << 5)
+#define FLED_CFG_FLED1_FLASH (1 << 4)
+#define FLED_CFG_FLED2_ENABLE (1 << 3)
+#define FLED_CFG_FLED1_ENABLE (1 << 2)
+
+//这些宏定义为您的寄存器操作提供了一个快速访问的方式。例如，如果您想开启LED1和LED2，同时设置它们为闪烁模式，可以按照以下方式使用这些宏定义：
+// 设置LED配置，使LED1和LED2闪烁
+uint8_t led_cfg_value = LED_CFG_LED1_FLASH_SET | LED_CFG_LED2_FLASH_SET;
+write_register(LED_CFG_REGISTER, led_cfg_value);
+
+// 使能LED1和LED2
+uint8_t led_en_value = LED_EN_LED1_ENABLE | LED_EN_LED2_ENABLE;
+write_register(LED_EN_REGISTER, led_en_value);

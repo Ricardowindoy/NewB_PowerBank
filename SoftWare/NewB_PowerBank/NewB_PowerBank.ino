@@ -1,4 +1,5 @@
 #include "src\HardWareDrive\IP5356\IP5356.h"
+#include "src\HardWareDrive\IP2369\IP2369.h"
 // tft屏幕懒得抽象了 暂时用不上 todo：将屏幕单独抽象成一个类
 #include "TFT_eSPI.h"
 
@@ -6,36 +7,33 @@
 #define SLK_PIN 5
 
 TFT_eSPI tft = TFT_eSPI();
-IP5356 drp;
+IP2369 drp;
 void setup()
 {
+  
+    Serial.print("SET UP: ");
   Serial.begin(115200);
   while (!Serial);
 
   drp.begin(4,5);
   
-  tft.begin();
-  tft.setRotation(0);
+  //tft.init();
+  //tft.setRotation(0);
 }
  
  
 void loop()
 {
-IP5356 drp;
-  drp.begin(4,5);
-    tft.fillScreen(TFT_GREEN);
+   // tft.fillScreen(TFT_GREEN);
     delay(200);
-    tft.fillScreen(TFT_RED);
+   // tft.fillScreen(TFT_RED);
     delay(200);
-    tft.fillScreen(TFT_BLUE);
+   // tft.fillScreen(TFT_BLUE);
     
     double fTypecV = (*drp.GetTypecV()) * 1.611328;
     double fTypecI = (*drp.GetTypecI()) * 0.671387;
-    uint8_t iSoc = *drp.GetSoc();
     Serial.print("loop print power: ");
     Serial.println(fTypecV * fTypecI / 1000000);
-    Serial.print("soc: ");
-    Serial.println(iSoc);
     
     delay(700);
 } 
