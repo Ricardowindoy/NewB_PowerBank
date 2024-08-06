@@ -14,4 +14,14 @@
 #define R_VBAT_LOW               0x50
 #define R_VBAT_HEIGH             0x51
 
+// ISYS
+#define R_ISYS_LOW              0x70
+#define R_ISYS_HEIGH            0x71
+// VSYS 
+#define R_VSYS_LOW               0x52
+#define R_VSYS_HEIGH             0x53
+// PSYS
+#define R_PSYS_LOW               0x74
+#define R_PSYS_HEIGH             0x75
+
 #endif

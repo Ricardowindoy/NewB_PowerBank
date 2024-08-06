@@ -4,8 +4,11 @@
 
 
 void IP2369::begin(uint8_t sdaPin, uint8_t sclPin) {
-    m_pTypecV = new short();
-    m_pTypecI = new short();
+    m_pBatV = new short();
+    m_pBatI = new short();
+    m_pSysV = new short();
+    m_pSysI = new short();
+    m_pSysP = new short();
     m_pSoc = new uint8_t();
 
     Wire.setPins(sdaPin, sclPin);
@@ -51,27 +54,56 @@ uint8_t IP2369::readBytes(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t quan
 }
 
 
-short* IP2369::GetTypecV() {
+short* IP2369::GetBatV() {
     uint8_t data;
     this->readBytes(IP2369_ADDR_0_1, R_VBAT_LOW, &data, 1);
-    *m_pTypecV = data;
+    *m_pBatV = data;
     this->readBytes(IP2369_ADDR_0_1, R_VBAT_HEIGH, &data, 1);
-    *m_pTypecV += data << 8;
+    *m_pBatV += data << 8;
 
-    return m_pTypecV;
+    return m_pBatV;
 }
 
-short* IP2369::GetTypecI() {
+short* IP2369::GetBatI() {
     uint8_t data;
     this->readBytes(IP2369_ADDR_0_1, R_IBAT_LOW, &data, 1);
-    *m_pTypecI = data;
+    *m_pBatI = data;
     this->readBytes(IP2369_ADDR_0_1, R_IBAT_HEIGH, &data, 1);
-    *m_pTypecI += data << 8;
+    *m_pBatI += data << 8;
 
-    return m_pTypecI;
+    return m_pBatI;
 }
 
 uint8_t* IP2369::GetSoc() {
 
     return m_pSoc;
 }
+short* IP2369::GetSysV() {
+    uint8_t data;
+    this->readBytes(IP2369_ADDR_0_1, R_VSYS_LOW, &data, 1);
+    *m_pSysV = data;
+    this->readBytes(IP2369_ADDR_0_1, R_VSYS_HEIGH, &data, 1);
+    *m_pSysV += data << 8;
+
+    return m_pSysV;
+}
+short* IP2369::GetSysI() {
+    uint8_t data;
+    this->readBytes(IP2369_ADDR_0_1, R_ISYS_LOW, &data, 1);
+    *m_pSysI = data;
+    this->readBytes(IP2369_ADDR_0_1, R_ISYS_HEIGH, &data, 1);
+    *m_pSysI += data << 8;
+
+    return m_pSysI;
+}
+
+short* IP2369::GetSysP() {
+    uint8_t data;
+    this->readBytes(IP2369_ADDR_0_1, R_PSYS_LOW, &data, 1);
+    *m_pSysP = data;
+    this->readBytes(IP2369_ADDR_0_1, R_PSYS_HEIGH, &data, 1);
+    *m_pSysP += data << 8;
+
+    return m_pSysP;
+}
+

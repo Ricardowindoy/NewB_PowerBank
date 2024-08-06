@@ -41,7 +41,7 @@ void Queue::SetCap(int iCap) {
     }
 
     if(iCap < 4)
-        iCap == 4;
+        iCap = 4;
 
     m_iQueueCap = iCap;
 }
